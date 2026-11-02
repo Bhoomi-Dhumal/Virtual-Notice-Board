@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <title>Create Notice - Virtual Notice Board</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="/css/app.css">
+</head>
+
+<body class="login-page">
+
+    <main class="login-card">
+
+        <div class="logo">VN</div>
+
+        <h2>Create Notice</h2>
+
+       
+
+        <form action="/create-notice"
+              method="POST"
+              enctype="multipart/form-data">
+
+            <!-- Notice Title -->
+            <label class="form-label">Title</label>
+
+            <input
+                type="text"
+                class="form-control mb-3"
+                name="title"
+                placeholder="Enter notice title"
+                required
+            >
+
+            <!-- Description -->
+            <label class="form-label">Description</label>
+
+            <textarea
+                class="form-control mb-3"
+                name="description"
+                rows="4"
+                placeholder="Enter notice details"
+                required
+            ></textarea>
+
+            <!-- Attachment -->
+            <label for="attachment" class="form-label">
+                Upload PDF or Image (Optional)
+            </label>
+
+            <input
+                type="file"
+                name="attachment"
+                id="attachment"
+                class="form-control mb-2"
+                accept=".pdf,.jpg,.jpeg,.png,.gif,.webp"
+            >
+
+            <small class="text-muted d-block mb-3">
+             PDF, JPG, PNG, GIF or WEBP file. Up to 10 MB.
+            </small>
+
+            <!-- Category -->
+            <label class="form-label">Category</label>
+
+            <select
+                class="form-select mb-3"
+                name="category"
+                required
+            >
+                <option value="">Select Category</option>
+                <option value="Examination">Examination</option>
+                <option value="Academic">Academic</option>
+                <option value="Event">Event</option>
+                <option value="General">General</option>
+                <option value="Placement">Placement</option>
+            </select>
+
+            <!-- Target Branch -->
+            <label class="form-label">Target Branch</label>
+
+            <select
+                class="form-select mb-3"
+                name="target_branch"
+                required
+            >
+                <option value="">Select Branch</option>
+                <option value="ALL">All Branches</option>
+                <option value="Computer">Computer Engineering</option>
+                <option value="IT">Information Technology</option>
+                <option value="EXTC">Electronics and Telecommunication</option>
+                <option value="Electrical">Electrical Engineering</option>
+                <option value="Mechanical">Mechanical Engineering</option>
+                <option value="Civil">Civil Engineering</option>
+            </select>
+
+            <!-- Target Year -->
+            <label class="form-label">Target Academic Year</label>
+
+            <select
+                class="form-select mb-3"
+                name="target_year"
+                required
+            >
+                <option value="">Select Year</option>
+                <option value="ALL">All Years</option>
+                <option value="FE">First Year (FE)</option>
+                <option value="SE">Second Year (SE)</option>
+                <option value="TE">Third Year (TE)</option>
+                <option value="BE">Final Year (BE)</option>
+            </select>
+
+            <!-- Priority -->
+            <label class="form-label">Priority</label>
+
+            <select
+                class="form-select mb-3"
+                name="priority"
+                required
+            >
+                <option value="">Select Priority</option>
+                <option value="HIGH">High</option>
+                <option value="MEDIUM">Medium</option>
+                <option value="LOW">Low</option>
+            </select>
+
+            <!-- Deadline -->
+            <label class="form-label">Deadline</label>
+
+            <input
+                type="date"
+                class="form-control mb-4"
+                name="deadline"
+                min="<%= new Date().toISOString().split('T')[0] %>"
+                required
+            >
+
+            <!-- Publish Button -->
+            <button type="submit" class="btn btn-primary w-100">
+                Publish Notice
+            </button>
+
+        </form>
+
+        <p class="small text-secondary mt-3 mb-0">
+            <a href="/dashboard">Back to Dashboard</a>
+        </p>
+
+    </main>
+
+</body>
+</html>

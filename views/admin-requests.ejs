@@ -1,0 +1,669 @@
+
+<!doctype html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>Admin Access Requests | VNB</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <style>
+
+        body {
+            background: #f4f7fc;
+            font-family: Arial, sans-serif;
+            color: #172033;
+        }
+
+        .topbar {
+            background: #101a30;
+            color: white;
+            padding: 18px 0;
+        }
+
+        .brand {
+            color: white;
+            text-decoration: none;
+            font-size: 23px;
+            font-weight: bold;
+        }
+
+        .page-header {
+            background: linear-gradient(110deg, #244caa, #397fe9);
+            color: white;
+            border-radius: 16px;
+            padding: 26px;
+            margin-bottom: 25px;
+        }
+
+        .request-card {
+            background: white;
+            border: 1px solid #e1e7f0;
+            border-radius: 14px;
+            padding: 22px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px #00000008;
+        }
+
+        .request-icon {
+            width: 48px;
+            height: 48px;
+            background: #dbeafe;
+            color: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 22px;
+        }
+
+        .request-date {
+            color: #788397;
+            font-size: 13px;
+        }
+
+        .pending-badge {
+            background: #fff0d8;
+            color: #a45b00;
+            padding: 6px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: bold;
+        }
+
+        .btn-approve {
+            background: #198754;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 18px;
+        }
+
+        .btn-approve:hover {
+            background: #146c43;
+            color: white;
+        }
+
+        .btn-reject {
+            background: #dc3545;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 18px;
+        }
+
+        .btn-reject:hover {
+            background: #bb2d3b;
+            color: white;
+        }
+
+        .empty-card {
+            background: white;
+            border-radius: 14px;
+            padding: 45px 20px;
+            text-align: center;
+            border: 1px solid #e1e7f0;
+        }
+
+        /* CONFIRMATION MODAL */
+
+        .confirm-modal {
+            display: none;
+            position: fixed;
+            inset: 0;
+            background: rgba(10, 20, 40, 0.65);
+            z-index: 9999;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .confirm-box {
+            background: white;
+            width: 100%;
+            max-width: 420px;
+            border-radius: 16px;
+            overflow: hidden;
+            box-shadow: 0 10px 35px #0003;
+            animation: popup 0.2s ease;
+        }
+
+        .confirm-header {
+            background: #101a30;
+            color: white;
+            padding: 20px;
+        }
+
+        .confirm-body {
+            padding: 25px;
+        }
+
+        .confirm-icon {
+            width: 48px;
+            height: 48px;
+            background: #dbeafe;
+            color: #2563eb;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 24px;
+            margin-bottom: 15px;
+        }
+
+        .confirm-btn {
+            color: white;
+            border: none;
+            border-radius: 8px;
+            padding: 9px 18px;
+        }
+
+        .confirm-btn.approve {
+            background: #198754;
+        }
+
+        .confirm-btn.approve:hover {
+            background: #146c43;
+        }
+
+        .confirm-btn.reject {
+            background: #dc3545;
+        }
+
+        .confirm-btn.reject:hover {
+            background: #bb2d3b;
+        }
+
+        @keyframes popup {
+            from {
+                opacity: 0;
+                transform: scale(0.95);
+            }
+
+            to {
+                opacity: 1;
+                transform: scale(1);
+            }
+        }
+
+        @media (max-width: 576px) {
+
+            .request-card {
+                padding: 16px;
+            }
+
+            .request-actions {
+                width: 100%;
+            }
+
+            .request-actions form {
+                flex: 1;
+            }
+
+            .request-actions button {
+                width: 100%;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <!-- NAVBAR -->
+
+    <nav class="topbar">
+
+        <div class="container d-flex
+                    justify-content-between
+                    align-items-center">
+
+            <a href="/dashboard" class="brand">
+                🎓 VNB
+            </a>
+
+            <a href="/dashboard"
+               class="btn btn-outline-light btn-sm">
+
+                ← Back to Dashboard
+
+            </a>
+
+        </div>
+
+    </nav>
+
+
+    <!-- MAIN CONTENT -->
+
+    <main class="container py-4">
+
+        <!-- PAGE HEADER -->
+
+        <section class="page-header">
+
+            <h2 class="fw-bold">
+                Admin Access Requests
+            </h2>
+
+            <p class="mb-0">
+                Review teacher requests and manage admin access.
+            </p>
+
+        </section>
+
+
+        <!-- REQUEST LIST -->
+
+        <% if (requests.length === 0) { %>
+
+            <div class="empty-card">
+
+                <div style="font-size: 40px;">
+                    📭
+                </div>
+
+                <h5 class="fw-bold mt-3">
+                    No Pending Requests
+                </h5>
+
+                <p class="text-muted mb-0">
+                    There are currently no teacher admin access requests.
+                </p>
+
+            </div>
+
+        <% } else { %>
+
+            <div class="d-flex justify-content-between
+                        align-items-center mb-3">
+
+                <h5 class="fw-bold mb-0">
+                    Pending Requests
+                </h5>
+
+                <span class="pending-badge">
+                    <%= requests.length %> Pending
+                </span>
+
+            </div>
+
+
+            <% requests.forEach(request => { %>
+
+                <div class="request-card">
+
+                    <!-- USER DETAILS -->
+
+                    <div class="d-flex align-items-center
+                                justify-content-between
+                                flex-wrap gap-3">
+
+                        <div class="d-flex align-items-center gap-3">
+
+                            <div class="request-icon">
+                                👤
+                            </div>
+
+                            <div>
+
+                                <h5 class="fw-bold mb-1">
+                                    <%= request.name %>
+                                </h5>
+
+                                <p class="text-muted mb-0">
+                                    <%= request.email %>
+                                </p>
+
+                            </div>
+
+                        </div>
+
+                        <span class="pending-badge">
+                            PENDING
+                        </span>
+
+                    </div>
+
+
+                    <hr>
+
+
+                    <!-- REQUEST DATE -->
+
+                    <div class="d-flex justify-content-between
+                                align-items-center
+                                flex-wrap gap-3">
+
+                        <div>
+
+                            <span class="request-date">
+                                REQUEST DATE
+                            </span>
+
+                            <p class="mb-0 fw-semibold">
+
+                                <%= request.request_date ?
+                                    new Date(request.request_date)
+                                    .toLocaleDateString('en-GB') :
+                                    'Not available' %>
+
+                            </p>
+
+                        </div>
+
+
+                        <!-- ACTION BUTTONS -->
+
+                        <div class="d-flex gap-2 request-actions">
+
+                            <!-- APPROVE FORM -->
+
+                            <form action="/admin-requests/<%= request.id %>/approve"
+                                  method="POST"
+                                  class="approve-form">
+
+                                <button type="submit"
+                                        class="btn btn-approve">
+
+                                    ✓ Approve
+
+                                </button>
+
+                            </form>
+
+
+                            <!-- REJECT FORM -->
+
+                            <form action="/admin-requests/<%= request.id %>/reject"
+                                  method="POST"
+                                  class="reject-form">
+
+                                <button type="submit"
+                                        class="btn btn-reject">
+
+                                    ✕ Reject
+
+                                </button>
+
+                            </form>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            <% }); %>
+
+        <% } %>
+
+    </main>
+
+
+    <!-- CUSTOM CONFIRMATION MODAL -->
+
+    <div id="confirmModal"
+         class="confirm-modal">
+
+        <div class="confirm-box">
+
+            <!-- MODAL HEADER -->
+
+            <div class="confirm-header">
+
+                <h5 id="confirmTitle"
+                    class="mb-0 fw-bold">
+
+                    Confirm Action
+
+                </h5>
+
+            </div>
+
+
+            <!-- MODAL BODY -->
+
+            <div class="confirm-body">
+
+                <div id="confirmIcon"
+                     class="confirm-icon">
+
+                    ?
+
+                </div>
+
+                <p id="confirmMessage"
+                   class="text-muted mb-4">
+
+                </p>
+
+
+                <!-- MODAL BUTTONS -->
+
+                <div class="d-flex justify-content-end gap-2">
+
+                    <button type="button"
+                            id="cancelConfirm"
+                            class="btn btn-outline-secondary">
+
+                        Cancel
+
+                    </button>
+
+                    <button type="button"
+                            id="confirmAction"
+                            class="confirm-btn approve">
+
+                        Confirm
+
+                    </button>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+
+    <!-- JAVASCRIPT -->
+
+    <script>
+
+        // Modal elements
+
+        const confirmModal =
+            document.getElementById("confirmModal");
+
+        const confirmTitle =
+            document.getElementById("confirmTitle");
+
+        const confirmMessage =
+            document.getElementById("confirmMessage");
+
+        const confirmIcon =
+            document.getElementById("confirmIcon");
+
+        const confirmAction =
+            document.getElementById("confirmAction");
+
+        const cancelConfirm =
+            document.getElementById("cancelConfirm");
+
+
+        // Selected form
+
+        let selectedForm = null;
+
+
+        // APPROVE FORM
+
+        document.querySelectorAll(".approve-form")
+            .forEach(form => {
+
+                form.addEventListener("submit", function(event) {
+
+                    event.preventDefault();
+
+                    selectedForm = this;
+
+
+                    // Modal title
+
+                    confirmTitle.innerText =
+                        "Approve Admin Access?";
+
+
+                    // Modal message
+
+                    confirmMessage.innerText =
+                        "Are you sure you want to approve this teacher's admin access request?";
+
+
+                    // Icon
+
+                    confirmIcon.innerText = "✓";
+
+                    confirmIcon.style.background = "#d1fae5";
+
+                    confirmIcon.style.color = "#198754";
+
+
+                    // Confirm button
+
+                    confirmAction.innerText =
+                        "Approve";
+
+                    confirmAction.className =
+                        "confirm-btn approve";
+
+
+                    // Show modal
+
+                    confirmModal.style.display = "flex";
+
+                });
+
+            });
+
+
+        // REJECT FORM
+
+        document.querySelectorAll(".reject-form")
+            .forEach(form => {
+
+                form.addEventListener("submit", function(event) {
+
+                    event.preventDefault();
+
+                    selectedForm = this;
+
+
+                    // Modal title
+
+                    confirmTitle.innerText =
+                        "Reject Admin Access?";
+
+
+                    // Modal message
+
+                    confirmMessage.innerText =
+                        "Are you sure you want to reject this teacher's admin access request?";
+
+
+                    // Icon
+
+                    confirmIcon.innerText = "✕";
+
+                    confirmIcon.style.background = "#fee2e2";
+
+                    confirmIcon.style.color = "#dc3545";
+
+
+                    // Confirm button
+
+                    confirmAction.innerText =
+                        "Reject";
+
+                    confirmAction.className =
+                        "confirm-btn reject";
+
+
+                    // Show modal
+
+                    confirmModal.style.display = "flex";
+
+                });
+
+            });
+
+
+        // CANCEL BUTTON
+
+        cancelConfirm.addEventListener("click", function() {
+
+            confirmModal.style.display = "none";
+
+            selectedForm = null;
+
+        });
+
+
+        // CONFIRM BUTTON
+
+        confirmAction.addEventListener("click", function() {
+
+            if (selectedForm) {
+
+                selectedForm.submit();
+
+            }
+
+        });
+
+
+        // CLOSE MODAL WHEN CLICKING OUTSIDE
+
+        confirmModal.addEventListener("click", function(event) {
+
+            if (event.target === confirmModal) {
+
+                confirmModal.style.display = "none";
+
+                selectedForm = null;
+
+            }
+
+        });
+
+
+        // ESCAPE KEY
+
+        document.addEventListener("keydown", function(event) {
+
+            if (event.key === "Escape") {
+
+                confirmModal.style.display = "none";
+
+                selectedForm = null;
+
+            }
+
+        });
+
+    </script>
+
+</body>
+
+</html>

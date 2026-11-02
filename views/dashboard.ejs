@@ -1,0 +1,1492 @@
+
+<%
+    const currentUser = locals.currentUser || {};
+    const isStaff = locals.isStaff || false;
+    const notices = locals.notices || [];
+    const isSuperAdmin = locals.isSuperAdmin || false;
+    const q = locals.q || '';
+    const branch = locals.branch || '';
+    const year = locals.year || '';
+    const category = locals.category || '';
+
+    // HIGH priority notices
+    const highPriorityNotices = notices.filter(n => n.priority === 'HIGH');
+
+    // Current date
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    // Next 7 days
+    const next7Days = new Date();
+    next7Days.setDate(next7Days.getDate() + 7);
+    next7Days.setHours(23, 59, 59, 999);
+
+    // Upcoming deadline notices
+    const deadlineNotices = notices.filter(n => {
+        if (!n.deadline || n.priority === 'HIGH') return false;
+
+        const deadline = new Date(n.deadline);
+        deadline.setHours(0, 0, 0, 0);
+
+        return deadline >= today && deadline <= next7Days;
+    });
+
+    // Normal notices
+    const normalNotices = notices.filter(n => {
+        if (n.priority === 'HIGH') return false;
+
+        if (!n.deadline) return true;
+
+        const deadline = new Date(n.deadline);
+        deadline.setHours(0, 0, 0, 0);
+
+        return deadline > next7Days;
+    });
+
+    // Format deadline
+    function formatDeadline(date) {
+        if (!date) return 'Not specified';
+
+        return new Date(date).toLocaleDateString('en-GB');
+    }
+%>
+
+<!doctype html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+
+    <title>Virtual Notice Board | Dashboard</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <link rel="stylesheet" href="/css/app.css">
+
+    <style>
+
+        body {
+            background: #f4f7fc;
+            font-family: Arial, sans-serif;
+            color: #172033;
+        }
+
+        .topbar {
+            background: #101a30;
+            color: white;
+            padding: 16px 0;
+        }
+
+        .brand {
+            font-size: 23px;
+            font-weight: bold;
+            color: white;
+            text-decoration: none;
+        }
+
+        .welcome {
+            background: linear-gradient(110deg, #244caa, #397fe9);
+            color: white;
+            border-radius: 16px;
+            padding: 26px;
+            margin-bottom: 24px;
+        }
+
+        .welcome h2 {
+            font-weight: bold;
+            font-size: 28px;
+        }
+
+        .panel {
+            background: white;
+            border-radius: 16px;
+            padding: 20px;
+            box-shadow: 0 2px 8px #00000008;
+            margin-bottom: 20px;
+        }
+
+        .notice-card {
+            background: white;
+            border: 1px solid #e1e7f0;
+            border-left: 5px solid #e6a321;
+            border-radius: 14px;
+            padding: 22px;
+            margin-bottom: 18px;
+            box-shadow: 0 2px 8px #00000008;
+        }
+
+        .high-notice-card {
+            border-left-color: #dc3545;
+        }
+
+        .upcoming-notice-card {
+            border-left-color: #f59e0b;
+        }
+
+        .notice-card h5 {
+            font-weight: bold;
+            margin-top: 12px;
+        }
+
+        .notice-text {
+            color: #697586;
+            margin-top: 14px;
+        }
+
+        .muted {
+            color: #788397;
+        }
+
+        .priority-high {
+            background: #fee2e2;
+            color: #b42318;
+        }
+
+        .priority-medium {
+            background: #fff0d8;
+            color: #a45b00;
+        }
+
+        .priority-low {
+            background: #dbeafe;
+            color: #1d4ed8;
+        }
+
+        .section-title {
+            font-weight: bold;
+            font-size: 21px;
+        }
+
+        .profile-icon {
+            background: #dbeafe;
+            color: #2563eb;
+            width: 48px;
+            height: 48px;
+            border-radius: 50%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-size: 23px;
+        }
+
+        .deadline-card {
+            border: 1px solid #e1e7f0;
+            background: #f8fafc;
+            border-radius: 10px;
+            padding: 14px;
+            margin-top: 14px;
+        }
+
+        .deadline-date {
+            color: #b42318;
+            font-weight: bold;
+        }
+
+        .filter-panel {
+            background: white;
+            border-radius: 14px;
+            padding: 16px;
+            margin-bottom: 24px;
+            box-shadow: 0 2px 8px #00000008;
+        }
+
+        .btn-blue {
+            background: #1769e8;
+            color: white;
+        }
+
+        .btn-blue:hover {
+            background: #1055c3;
+            color: white;
+        }
+
+        .preview-overlay {
+            display: none;
+            position: fixed;
+            z-index: 1050;
+            inset: 0;
+            background: rgba(10,20,40,.65);
+            padding: 20px;
+            overflow: auto;
+        }
+
+        .preview-box {
+            max-width: 650px;
+            margin: 5vh auto;
+            background: white;
+            border-radius: 16px;
+            overflow: hidden;
+        }
+
+        .preview-header,
+        .preview-footer {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+            background: #f8fafc;
+        }
+
+        .preview-label {
+            font-size: 12px;
+            color: #1769e8;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        .preview-close {
+            border: 0;
+            background: #1769e8;
+            font-size: 26px;
+        }
+
+        .preview-body {
+            padding: 24px;
+        }
+
+        .preview-info {
+            display: flex;
+            gap: 8px;
+            margin-bottom: 18px;
+        }
+
+        .preview-category,
+        .preview-priority {
+            background: #eaf1ff;
+            padding: 5px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+        }
+
+        .preview-description {
+            white-space: pre-wrap;
+            color: #536174;
+        }
+
+        .preview-audience {
+            display: flex;
+            justify-content: space-between;
+            gap: 15px;
+            background: #f8fafc;
+            padding: 12px;
+            border-radius: 9px;
+        }
+
+        .preview-close-btn {
+            border: 0;
+            border-radius: 8px;
+            background: #1769e8;
+            color: white;
+            padding: 10px 16px;
+        }
+
+        @media (max-width: 768px) {
+            .welcome h2 {
+                font-size: 22px;
+            }
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+<!-- NAVBAR -->
+
+<nav class="topbar">
+
+    <div class="container d-flex flex-wrap justify-content-between align-items-center gap-3">
+
+        <div class="d-flex align-items-center gap-3">
+
+            <a href="/dashboard" class="brand">🎓 VNB</a>
+
+            
+
+            
+
+        </div>
+
+        <div class="d-flex align-items-center gap-3">
+
+            <span>
+                <%= currentUser.fullName %>
+            </span>
+
+            <span class="badge bg-light text-primary">
+                <%= currentUser.role %>
+            </span>
+
+            <a href="/logout"
+               class="btn btn-sm btn-outline-light">
+                Logout
+            </a>
+
+        </div>
+
+    </div>
+
+</nav>
+
+
+<main class="container py-4">
+
+<% if (isStaff) { %>
+
+    <!-- ADMIN DASHBOARD -->
+
+    <section class="welcome">
+
+        <span class="badge bg-light text-primary mb-2">
+            Admin Portal
+        </span>
+
+        <h2>
+            Welcome back, <%= currentUser.fullName %>
+        </h2>
+
+        <p class="mb-0">
+            Manage college announcements and publish notices for students.
+        </p>
+
+    </section>
+
+    <section class="panel">
+
+        <a href="/create-notice" class="btn btn-blue">
+            + Create Notice
+        </a>
+
+    </section>
+
+    
+
+<% } else { %>
+
+    <!-- STUDENT DASHBOARD -->
+<!-- REQUEST ADMIN ACCESS -->
+
+<% if (!isStaff) { %>
+
+    <section class="panel">
+
+        <h5 class="fw-bold">Teacher Admin Access</h5>
+
+        <p>
+            Are you a teacher?
+            Request admin access to manage notices.
+        </p>
+
+        <form action="/request-admin" method="POST">
+
+            <button type="submit" class="btn btn-blue">
+                Request Admin Access
+            </button>
+
+        </form>
+
+    </section>
+
+<% } %>
+    <div class="row">
+
+        <div class="col-lg-8">
+
+            <!-- WELCOME BANNER -->
+
+            <section class="welcome">
+
+                <span class="badge bg-light text-primary mb-2">
+                    🎓 Student Portal
+                </span>
+
+                <p class="mb-1">
+                    <%= currentUser.branch || 'Student' %>
+                    •
+                    <%= currentUser.academicYear || '' %>
+                </p>
+
+                <h2>
+                    Welcome back, <%= currentUser.fullName %>
+                </h2>
+
+                <p class="mb-0">
+                    Here are the latest official announcements,
+                    examination schedules, and submission deadlines.
+                </p>
+
+            </section>
+
+
+            <!-- SEARCH AND FILTERS -->
+
+            <section class="filter-panel">
+
+                <form method="GET"
+                      action="/dashboard"
+                      class="row g-2">
+
+                    <!-- KEYWORD SEARCH -->
+
+                    <div class="col-md-4">
+
+                        <input type="text"
+                               name="q"
+                               class="form-control"
+                               placeholder="Search notices by keyword..."
+                               value="<%= q %>">
+
+                    </div>
+
+
+                    <!-- BRANCH FILTER -->
+
+                    <div class="col-md-3">
+
+                        <select name="branch" class="form-select">
+
+                            <option value=""
+                                <%= !branch ? 'selected' : '' %>>
+                                All Branches
+                            </option>
+
+                            <option value="IT"
+                                <%= branch === 'IT' ? 'selected' : '' %>>
+                                IT
+                            </option>
+
+                            <option value="Computer"
+                                <%= branch === 'Computer' ? 'selected' : '' %>>
+                                Computer
+                            </option>
+
+                            <option value="EXTC"
+                                <%= branch === 'EXTC' ? 'selected' : '' %>>
+                                EXTC
+                            </option>
+
+                            <option value="Electrical"
+                                <%= branch === 'Electrical' ? 'selected' : '' %>>
+                                Electrical
+                            </option>
+
+                            <option value="Mechanical"
+                                <%= branch === 'Mechanical' ? 'selected' : '' %>>
+                                Mechanical
+                            </option>
+
+                            <option value="Civil"
+                                <%= branch === 'Civil' ? 'selected' : '' %>>
+                                Civil
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- YEAR FILTER -->
+
+                    <div class="col-md-2">
+
+                        <select name="year" class="form-select">
+
+                            <option value=""
+                                <%= !year ? 'selected' : '' %>>
+                                All Years
+                            </option>
+
+                            <option value="FE"
+                                <%= year === 'FE' ? 'selected' : '' %>>
+                                FE
+                            </option>
+
+                            <option value="SE"
+                                <%= year === 'SE' ? 'selected' : '' %>>
+                                SE
+                            </option>
+
+                            <option value="TE"
+                                <%= year === 'TE' ? 'selected' : '' %>>
+                                TE
+                            </option>
+
+                            <option value="BE"
+                                <%= year === 'BE' ? 'selected' : '' %>>
+                                BE
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- CATEGORY FILTER -->
+
+                    <div class="col-md-3">
+
+                        <select name="category" class="form-select">
+
+                            <option value=""
+                                <%= !category ? 'selected' : '' %>>
+                                All Categories
+                            </option>
+
+                            <option value="Examination"
+                                <%= category === 'Examination' ? 'selected' : '' %>>
+                                Examination
+                            </option>
+
+                            <option value="Academic"
+                                <%= category === 'Academic' ? 'selected' : '' %>>
+                                Academic
+                            </option>
+
+                            <option value="Event"
+                                <%= category === 'Event' ? 'selected' : '' %>>
+                                Event
+                            </option>
+
+                            <option value="General"
+                                <%= category === 'General' ? 'selected' : '' %>>
+                                General
+                            </option>
+
+                            <option value="Placement"
+                                <%= category === 'Placement' ? 'selected' : '' %>>
+                                Placement
+                            </option>
+
+                        </select>
+
+                    </div>
+
+
+                    <!-- BUTTONS -->
+
+                    <div class="col-12 text-end">
+
+                        <button type="submit" class="btn btn-blue">
+                            🔍 Apply Filters
+                        </button>
+
+                        <a href="/dashboard"
+                           class="btn btn-outline-secondary">
+                            Reset
+                        </a>
+
+                    </div>
+
+                </form>
+
+            </section>
+
+<% } %>
+
+<!-- SUPER ADMIN PANEL -->
+<% if (isSuperAdmin) { %>
+
+    <section class="container mt-4 mb-4">
+
+        <div class="card border-0 shadow-sm"
+             style="border-radius: 16px; overflow: hidden;">
+
+            <!-- PANEL HEADER -->
+            <div class="p-4"
+                 style="background: #101a30; color: white;">
+
+                <div class="d-flex align-items-center gap-3">
+
+                    <div style="
+                        width: 48px;
+                        height: 48px;
+                        background: #244caa;
+                        border-radius: 12px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 24px;">
+
+                        ⚙️
+
+                    </div>
+
+                    <div>
+                        <h4 class="mb-1 fw-bold">
+                            Super Admin Panel
+                        </h4>
+
+                        <p class="mb-0 small"
+                           style="color: #cbd5e1;">
+                            Manage teacher admin access
+                        </p>
+                    </div>
+
+                </div>
+
+            </div>
+
+
+            <!-- PANEL BODY -->
+            <div class="p-4"
+                 style="background: white;">
+
+                <div class="d-flex flex-wrap
+                            justify-content-between
+                            align-items-center
+                            gap-3">
+
+                    <div>
+
+                        <h5 class="fw-bold mb-2">
+                            Admin Access Requests
+                        </h5>
+
+                        <p class="text-muted mb-0">
+                            Review and manage teacher requests
+                            for admin access.
+                        </p>
+
+                    </div>
+
+                    <a href="/admin-requests"
+                       class="btn btn-primary px-4 py-2"
+                       style="
+                       background: #1769e8;
+                       border: none;
+                       border-radius: 8px;">
+
+                        View Requests
+                        <span class="ms-2">→</span>
+
+                    </a>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </section>
+
+<% } %>
+
+<!-- HIGH PRIORITY NOTICES -->
+
+<% if (highPriorityNotices.length > 0) { %>
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+
+        <h4 class="section-title">
+            🔴 High Priority Notices
+        </h4>
+
+        <span class="badge priority-high">
+            <%= highPriorityNotices.length %>
+        </span>
+
+    </div>
+
+    <% highPriorityNotices.forEach(function(n) { %>
+
+        <article class="notice-card high-notice-card">
+
+            <div class="d-flex justify-content-between flex-wrap gap-2">
+
+                <div>
+
+                    <span class="badge priority-high">
+                        HIGH Priority
+                    </span>
+
+                    <span class="badge bg-light text-dark">
+                        <%= n.category %>
+                    </span>
+
+                    <h5>
+                        <%= n.title %>
+                    </h5>
+
+                </div>
+
+                <span class="small muted">
+
+                    <%= n.created_at ?
+                        new Date(n.created_at).toLocaleDateString('en-GB') : '' %>
+
+                </span>
+
+            </div>
+
+        <p class="notice-text"><%= (n.description || '').trim() %></p>
+<% if (n.attachment) { %>
+    <div class="mt-3">
+        <a href="<%= n.attachment %>"
+           download
+           class="btn btn-sm btn-outline-primary">  
+            📎 Download Attachment
+        </a>
+    </div>
+<% } %>
+            <div class="deadline-card">
+
+                <span class="deadline-date">
+                    ⏰ Deadline:
+                </span>
+
+                <%= formatDeadline(n.deadline) %>
+
+            </div>
+
+            <div class="small muted mb-3 mt-3">
+
+                Audience:
+
+                <%= n.target_branch === 'ALL' ?
+                    'All College Students' : n.target_branch %>
+
+                |
+
+                <%= n.target_year === 'ALL' ?
+                    'All Years' : n.target_year %>
+
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+
+                <button class="btn btn-sm btn-outline-primary"
+                        type="button"
+                        onclick="showPreview(
+                            '<%= n.title %>',
+                            '<%= n.description %>',
+                            '<%= n.category %>',
+                            '<%= n.priority %>',
+                            '<%= n.target_branch %>',
+                            '<%= n.target_year %>',
+                            '<%= formatDeadline(n.deadline) %>'
+                        )">
+
+                    Preview
+
+                </button>
+
+                <% if (isStaff) { %>
+
+                    <form action="/notices/<%= n.id %>/delete"
+                          method="POST"
+                          onsubmit="return confirm('Are you sure you want to permanently delete this notice?');">
+
+                        <button type="submit"
+                                class="btn btn-sm btn-danger">
+                            Delete Notice
+                        </button>
+
+                    </form>
+
+                <% } else { %>
+
+                    <% if (n.isRead) { %>
+
+                        <button class="btn btn-secondary" disabled>
+                            Read
+                        </button>
+
+                    <% } else { %>
+
+                        <form action="/notices/<%= n.id %>/read"
+                              method="POST">
+
+                            <button type="submit"
+                                    class="btn btn-success">
+                                Mark as Read
+                            </button>
+
+                        </form>
+
+                    <% } %>
+
+                <% } %>
+
+            </div>
+
+        </article>
+
+   
+
+<% }); %>
+
+<% } %>
+
+
+
+<!-- UPCOMING DEADLINES -->
+
+<% if (deadlineNotices.length > 0) { %>
+
+    <div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+
+        <h4 class="section-title">
+            ⏰ Upcoming Deadlines
+        </h4>
+
+        <span class="badge priority-medium">
+            <%= deadlineNotices.length %>
+        </span>
+
+    </div>
+
+    <% deadlineNotices.forEach(function(n) { %>
+
+        <article class="notice-card upcoming-notice-card">
+
+            <div class="d-flex justify-content-between flex-wrap gap-2">
+
+                <div>
+
+                    <span class="badge priority-medium">
+                        Deadline Approaching
+                    </span>
+
+                    <span class="badge bg-light text-dark">
+                        <%= n.category %>
+                    </span>
+
+                    <h5>
+                        <%= n.title %>
+                    </h5>
+
+                </div>
+
+                <span class="small muted">
+
+                    <%= n.created_at ?
+                        new Date(n.created_at).toLocaleDateString('en-GB') : '' %>
+
+                </span>
+
+            </div>
+
+            <p class="notice-text">
+                <%= n.description || '' %>
+            </p>
+<% if (n.attachment) { %>
+    <div class="mt-3">
+        <a href="<%= n.attachment %>"
+           download
+           class="btn btn-sm btn-outline-primary">
+            📎 Download Attachment
+        </a>
+    </div>
+<% } %>
+            <div class="deadline-card">
+
+                <span class="deadline-date">
+                    ⏰ Deadline:
+                </span>
+
+                <%= formatDeadline(n.deadline) %>
+
+            </div>
+
+            <div class="small muted mb-3 mt-3">
+
+                Audience:
+
+                <%= n.target_branch === 'ALL' ?
+                    'All College Students' : n.target_branch %>
+
+                |
+
+                <%= n.target_year === 'ALL' ?
+                    'All Years' : n.target_year %>
+
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+
+                <button class="btn btn-sm btn-outline-primary"
+                        type="button"
+                        onclick="showPreview(
+                            '<%= n.title %>',
+                            '<%= n.description %>',
+                            '<%= n.category %>',
+                            '<%= n.priority %>',
+                            '<%= n.target_branch %>',
+                            '<%= n.target_year %>',
+                            '<%= formatDeadline(n.deadline) %>'
+                        )">
+
+                    Preview
+
+                </button>
+
+                <% if (isStaff) { %>
+
+                    <form action="/notices/<%= n.id %>/delete"
+                          method="POST"
+                          onsubmit="return confirm('Are you sure you want to permanently delete this notice?');">
+
+                        <button type="submit"
+                                class="btn btn-sm btn-danger">
+                            Delete Notice
+                        </button>
+
+                    </form>
+
+                <% } else { %>
+
+                    <% if (n.isRead) { %>
+
+                        <button class="btn btn-secondary" disabled>
+                            Read
+                        </button>
+
+                    <% } else { %>
+
+                        <form action="/notices/<%= n.id %>/read"
+                              method="POST">
+
+                            <button type="submit"
+                                    class="btn btn-success">
+                                Mark as Read
+                            </button>
+
+                        </form>
+
+                    <% } %>
+
+                <% } %>
+
+            </div>
+
+        </article>
+
+    <% }); %>
+
+<% } %>
+
+
+<!-- NORMAL NOTICES -->
+
+<div class="d-flex justify-content-between align-items-center mb-3 mt-4">
+
+    <h4 class="section-title">
+        📌 Active Announcements
+    </h4>
+
+    <span class="badge bg-light text-dark">
+        <%= notices.length %> notices found
+    </span>
+
+</div>
+
+<% if (normalNotices.length > 0) { %>
+
+    <% normalNotices.forEach(function(n) { %>
+
+        <article class="notice-card">
+
+            <div class="d-flex justify-content-between flex-wrap gap-2">
+
+                <div>
+
+                    <span class="badge
+                        <%= n.priority === 'HIGH' ? 'priority-high' :
+                            n.priority === 'MEDIUM' ? 'priority-medium' :
+                            'priority-low' %>">
+
+                        <%= n.priority %> Priority
+
+                    </span>
+
+                    <span class="badge bg-light text-dark">
+                        <%= n.category %>
+                    </span>
+
+                    <h5>
+                        <%= n.title %>
+                    </h5>
+
+                </div>
+
+                <span class="small muted">
+
+                    <%= n.created_at ?
+                        new Date(n.created_at).toLocaleDateString('en-GB') : '' %>
+
+                </span>
+
+            </div>
+
+            <p class="notice-text">
+                <%= n.description || '' %>
+            </p>
+<% if (n.attachment) { %>
+    <div class="mt-3">
+        <a href="<%= n.attachment %>"
+           download
+           class="btn btn-sm btn-outline-primary">
+            📎 Download Attachment
+        </a>
+    </div>
+<% } %>
+            <div class="deadline-card">
+
+                <span class="deadline-date">
+                    ⏰ Deadline:
+                </span>
+
+                <%= formatDeadline(n.deadline) %>
+
+            </div>
+
+            <div class="small muted mb-3 mt-3">
+
+                Audience:
+
+                <%= n.target_branch === 'ALL' ?
+                    'All College Students' : n.target_branch %>
+
+                |
+
+                <%= n.target_year === 'ALL' ?
+                    'All Years' : n.target_year %>
+
+            </div>
+
+            <div class="d-flex flex-wrap gap-2">
+
+                <button class="btn btn-sm btn-outline-primary"
+                        type="button"
+                        onclick="showPreview(
+                            '<%= n.title %>',
+                            '<%= n.description %>',
+                            '<%= n.category %>',
+                            '<%= n.priority %>',
+                            '<%= n.target_branch %>',
+                            '<%= n.target_year %>',
+                            '<%= formatDeadline(n.deadline) %>'
+                        )">
+
+                    Preview
+
+                </button>
+
+                <% if (isStaff) { %>
+
+                   <form action="/notices/<%= n.id %>/delete"
+      method="POST"
+      class="delete-notice-form">
+
+    <button type="submit"
+            class="btn btn-sm btn-danger">
+        Delete Notice
+    </button>
+
+</form>
+
+                <% } else { %>
+
+                    <% if (n.isRead) { %>
+
+                        <button class="btn btn-secondary" disabled>
+                            Read
+                        </button>
+
+                    <% } else { %>
+
+                        <form action="/notices/<%= n.id %>/read"
+                              method="POST">
+
+                            <button type="submit"
+                                    class="btn btn-success">
+                                Mark as Read
+                            </button>
+
+                        </form>
+
+                    <% } %>
+
+                <% } %>
+
+            </div>
+
+        </article>
+
+    <% }); %>
+
+<% } else if (highPriorityNotices.length === 0 &&
+              deadlineNotices.length === 0) { %>
+
+    <div class="panel text-center muted">
+        No notices available.
+    </div>
+
+<% } %>
+
+
+<% if (!isStaff) { %>
+
+        </div>
+
+        <!-- RIGHT SIDE -->
+
+        <div class="col-lg-4">
+
+            <!-- STUDENT PROFILE -->
+
+            <section class="panel">
+
+                <div class="d-flex align-items-center gap-3">
+
+                    <div class="profile-icon">
+                        👤
+                    </div>
+
+                    <div>
+
+                        <strong>
+                            <%= currentUser.fullName %>
+                        </strong>
+
+                        <div class="small muted">
+                            <%= currentUser.email %>
+                        </div>
+
+                        <div class="small text-primary">
+                            <%= currentUser.branch || '' %>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </section>
+
+
+            <!-- UPCOMING DEADLINES -->
+
+            <section class="panel">
+
+                <h5 class="fw-bold">
+                    ⏰ Upcoming Deadlines
+                </h5>
+
+                <% if (deadlineNotices.length > 0) { %>
+
+                    <% deadlineNotices.forEach(function(n) { %>
+
+                        <div class="deadline-card">
+
+                            <span class="badge priority-medium">
+                                Upcoming
+                            </span>
+
+                            <p class="fw-bold mt-2 mb-1">
+                                <%= n.title %>
+                            </p>
+
+                            <p class="small deadline-date mb-0">
+
+                                Deadline:
+                                <%= formatDeadline(n.deadline) %>
+
+                            </p>
+
+                        </div>
+
+                    <% }); %>
+
+                <% } else { %>
+
+                    <div class="deadline-card">
+
+                        <p class="small muted mb-0">
+                            No upcoming deadlines.
+                        </p>
+
+                    </div>
+
+                <% } %>
+
+            </section>
+
+
+            <!-- PRIORITY STRUCTURE -->
+
+            <section class="panel">
+
+                <h5 class="fw-bold mb-3">
+                    ⓘ Priority Structure
+                </h5>
+
+                <p class="small">
+
+                    <span class="badge priority-high">
+                        HIGH
+                    </span>
+
+                    Examinations and urgent notices
+
+                </p>
+
+                <p class="small">
+
+                    <span class="badge priority-medium">
+                        MEDIUM
+                    </span>
+
+                    Assignments and deadlines
+
+                </p>
+
+                <p class="small mb-0">
+
+                    <span class="badge priority-low">
+                        LOW
+                    </span>
+
+                    General announcements
+
+                </p>
+
+            </section>
+
+        </div>
+
+    </div>
+
+<% } %>
+
+</main>
+
+
+<!-- PREVIEW MODAL -->
+
+<div id="previewModal" class="preview-overlay">
+
+    <div class="preview-box">
+
+        <div class="preview-header">
+
+            <div>
+
+                <span class="preview-label">
+                    NOTICE PREVIEW
+                </span>
+
+                <h2 id="previewTitle"></h2>
+
+            </div>
+
+            <button type="button"
+                    class="preview-close"
+                    onclick="closePreview()">
+
+                &times;
+
+            </button>
+
+        </div>
+
+
+        <div class="preview-body">
+
+            <div class="preview-info">
+
+                <span class="preview-category"
+                      id="previewCategory">
+                </span>
+
+                <span class="preview-priority"
+                      id="previewPriority">
+                </span>
+
+            </div>
+
+            <h4>
+                Notice Details
+            </h4>
+
+            <p id="previewDescription"
+               class="preview-description">
+            </p>
+
+            <div class="preview-audience">
+
+                <span>👥 Audience</span>
+
+                <strong id="previewAudience"></strong>
+
+            </div>
+
+            <div class="preview-audience mt-3">
+
+                <span>⏰ Deadline</span>
+
+                <strong id="previewDeadline"></strong>
+
+            </div>
+
+        </div>
+
+
+        <div class="preview-footer">
+
+            <button type="button"
+                    class="preview-close-btn"
+                    onclick="closePreview()">
+
+                Close Preview
+
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<script>
+
+function showPreview(title, description, category,
+                    priority, branch, year, deadline) {
+
+    document.getElementById("previewTitle").innerText =
+        title;
+
+    document.getElementById("previewDescription").innerText =
+        description;
+
+    document.getElementById("previewCategory").innerText =
+        category;
+
+    document.getElementById("previewPriority").innerText =
+        priority;
+
+    document.getElementById("previewAudience").innerText =
+        branch + " | " + year;
+
+    document.getElementById("previewDeadline").innerText =
+        deadline || "Not specified";
+
+    document.getElementById("previewModal").style.display =
+        "block";
+
+}
+
+function closePreview() {
+
+    document.getElementById("previewModal").style.display =
+        "none";
+
+}
+
+</script>
+<!-- Delete Confirmation Popup -->
+<div id="deleteModal" class="delete-modal">
+
+    <div class="delete-modal-content">
+
+        <div class="delete-icon">
+            !
+        </div>
+
+        <h3>Delete Notice?</h3>
+
+        <p>
+            Are you sure you want to delete this notice?
+            This action cannot be undone.
+        </p>
+
+        <div class="delete-modal-buttons">
+
+            <button type="button"
+                    id="cancelDelete"
+                    class="cancel-btn">
+                Cancel
+            </button>
+
+            <button type="button"
+                    id="confirmDelete"
+                    class="confirm-delete-btn">
+                Delete
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+<script>
+
+    const deleteForms = document.querySelectorAll('.delete-notice-form');
+
+    const deleteModal = document.getElementById('deleteModal');
+
+    const cancelDelete = document.getElementById('cancelDelete');
+
+    const confirmDelete = document.getElementById('confirmDelete');
+
+    let selectedForm = null;
+
+
+    // Open popup when Delete button is clicked
+    deleteForms.forEach(form => {
+
+        form.addEventListener('submit', function(event) {
+
+            event.preventDefault();
+
+            selectedForm = this;
+
+            deleteModal.style.display = 'flex';
+
+        });
+
+    });
+
+
+    // Cancel delete
+    cancelDelete.addEventListener('click', function() {
+
+        deleteModal.style.display = 'none';
+
+        selectedForm = null;
+
+    });
+
+
+    // Confirm delete
+    confirmDelete.addEventListener('click', function() {
+
+        if (selectedForm) {
+
+            selectedForm.submit();
+
+        }
+
+    });
+
+
+    // Close popup when clicking outside
+    deleteModal.addEventListener('click', function(event) {
+
+        if (event.target === deleteModal) {
+
+            deleteModal.style.display = 'none';
+
+            selectedForm = null;
+
+        }
+
+    });
+
+</script>
+</body>
+</html>

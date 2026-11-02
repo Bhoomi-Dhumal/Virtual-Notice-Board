@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+    <meta charset="UTF-8">
+
+    <meta name="viewport"
+          content="width=device-width, initial-scale=1">
+
+    <title>Virtual Notice Board | Welcome</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+          rel="stylesheet">
+
+    <style>
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            min-height: 100vh;
+
+            font-family: Arial, sans-serif;
+
+            background: #f4f7fc;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            padding: 20px;
+        }
+
+        /* Welcome Card */
+
+        .welcome-box {
+            width: 100%;
+            max-width: 500px;
+
+            background: white;
+
+            border-radius: 18px;
+
+            padding: 45px 40px;
+
+            text-align: center;
+
+            box-shadow: 0 8px 30px rgba(16, 26, 48, 0.10);
+
+            border: 1px solid #e1e7f0;
+        }
+
+        /* Logo */
+
+        .logo {
+            width: 75px;
+            height: 75px;
+
+            margin: 0 auto 22px;
+
+            background: #eaf1ff;
+
+            color: #1769e8;
+
+            border-radius: 18px;
+
+            display: flex;
+            align-items: center;
+            justify-content: center;
+
+            font-size: 35px;
+        }
+
+        /* Heading */
+
+        .welcome-box h1 {
+            color: #101a30;
+
+            font-size: 30px;
+
+            font-weight: bold;
+
+            margin-bottom: 15px;
+        }
+
+        /* Description */
+
+        .welcome-box p {
+            color: #697586;
+
+            font-size: 15px;
+
+            line-height: 1.8;
+
+            margin-bottom: 30px;
+        }
+
+        /* Login Button */
+
+        .btn-login {
+            display: block;
+
+            width: 100%;
+
+            padding: 13px;
+
+            border-radius: 9px;
+
+            background: #1769e8;
+
+            color: white;
+
+            text-decoration: none;
+
+            font-weight: bold;
+
+            transition: 0.3s;
+        }
+
+        .btn-login:hover {
+            background: #1055c3;
+
+            color: white;
+
+            transform: translateY(-2px);
+        }
+
+        /* Register Button */
+
+        .btn-register {
+            display: block;
+
+            width: 100%;
+
+            margin-top: 13px;
+
+            padding: 13px;
+
+            border-radius: 9px;
+
+            border: 1px solid #1769e8;
+
+            background: white;
+
+            color: #1769e8;
+
+            text-decoration: none;
+
+            font-weight: bold;
+
+            transition: 0.3s;
+        }
+
+        .btn-register:hover {
+            background: #eaf1ff;
+
+            color: #1055c3;
+
+            transform: translateY(-2px);
+        }
+
+        /* Footer */
+
+        .footer-text {
+            margin-top: 28px;
+
+            color: #788397;
+
+            font-size: 12px;
+        }
+
+        /* Responsive */
+
+        @media (max-width: 480px) {
+
+            .welcome-box {
+                padding: 35px 25px;
+            }
+
+            .welcome-box h1 {
+                font-size: 25px;
+            }
+
+        }
+
+    </style>
+
+</head>
+
+<body>
+
+    <div class="welcome-box">
+
+        <!-- Logo -->
+        <div class="logo">
+            🎓
+        </div>
+
+        <!-- Heading -->
+        <h1>VNB</h1>
+
+        <!-- Description -->
+        <p>
+            Stay updated with college notices,
+            announcements, examination schedules
+            and important information.
+        </p>
+
+        <!-- Login -->
+        <a href="/login" class="btn-login">
+            Login
+        </a>
+
+        <!-- Register -->
+        <a href="/register" class="btn-register">
+            New User? Register
+        </a>
+
+        <!-- Footer -->
+        <div class="footer-text">
+            Your Campus. Your Updates. All in One Place.
+        </div>
+
+    </div>
+
+</body>
+
+</html>
